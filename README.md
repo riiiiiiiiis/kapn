@@ -1,4 +1,17 @@
-# Discord Chat Analyzer
+
+ ██ ▄█▀▄▄▄       ██▓███   ███▄    █ 
+ ██▄█▒▒████▄    ▓██░  ██▒ ██ ▀█   █ 
+▓███▄░▒██  ▀█▄  ▓██░ ██▓▒▓██  ▀█ ██▒
+▓██ █▄░██▄▄▄▄██ ▒██▄█▓▒ ▒▓██▒  ▐▌██▒
+▒██▒ █▄▓█   ▓██▒▒██▒ ░  ░▒██░   ▓██░
+▒ ▒▒ ▓▒▒▒   ▓▒█░▒▓▒░ ░  ░░ ▒░   ▒ ▒ 
+░ ░▒ ▒░ ▒   ▒▒ ░░▒ ░     ░ ░░   ░ ▒░
+░ ░░ ░  ░   ▒   ░░          ░   ░ ░ 
+░  ░        ░  ░                  ░ 
+                                    
+
+
+# kapn - Discord Chat AI Analyzer
 
 A local web application that allows you to analyze Discord chat conversations using Google's Gemini AI. This tool fetches messages from a Discord channel, stores them in a local SQLite database, and provides AI-powered topic extraction and summarization.
 
