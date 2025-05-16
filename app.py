@@ -91,11 +91,18 @@ def fetch_messages():
     def fetch_task():
         try:
             scraper = DiscordScraper(discord_token, server_id, channel_id)
-            scraper.fetch_messages()
+            message_count = scraper.fetch_and_store_messages()
+            print(f"Fetched and stored {message_count} messages for channel {channel_id}")
+            return {"status": "success", "message": f"Fetched and stored {message_count} messages"}
         except Exception as e:
-            print(f"Error fetching messages: {e}")
+            print(f"Error fetching messages: {str(e)}")
+            return {"status": "error", "message": str(e)}
     
-    executor.submit(fetch_task)
+    # Start message fetching in background
+    future = executor.submit(fetch_task)
+    
+    # Log that we're starting the task
+    print(f"Started message fetching task for channel {channel_id}")
     
     return {
         "status": "scraping_initiated", 
@@ -113,14 +120,23 @@ def get_displayed_messages():
     if not all([server_id, channel_id]):
         return {"status": "error", "message": "Missing required fields"}
     
-    # Get last 24 hours of messages
-    one_day_ago_ms = int(time.time() * 1000) - (24 * 60 * 60 * 1000)
-    messages = db.get_recent_messages(channel_id, one_day_ago_ms)
-    
-    return {
-        "status": "success",
-        "messages": messages
-    }
+    try:
+        # Get last 24 hours of messages
+        one_day_ago_ms = int(time.time() * 1000) - (24 * 60 * 60 * 1000)
+        messages = db.get_recent_messages(channel_id, one_day_ago_ms)
+        
+        if not messages:
+            return {
+                "status": "error",
+                "message": "No messages found. Try fetching messages first."
+            }
+            
+        return {
+            "status": "success",
+            "messages": messages
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 @app.route("/get_topics", methods=["POST"])
 @json_response

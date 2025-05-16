@@ -12,7 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
         
         // Messages elements
         fetchMessagesBtn: document.getElementById("fetch-messages"),
-        viewMessagesBtn: document.getElementById("view-messages"),
         messageStatus: document.getElementById("message-status"),
         messagesContainer: document.getElementById("messages-container"),
         messagesList: document.getElementById("messages-list"),
@@ -47,7 +46,6 @@ document.addEventListener("DOMContentLoaded", () => {
             this.saveConfigBtn.addEventListener("click", () => this.saveConfig());
             this.checkStatusBtn.addEventListener("click", () => this.checkStatus());
             this.fetchMessagesBtn.addEventListener("click", () => this.fetchMessages());
-            this.viewMessagesBtn.addEventListener("click", () => this.displayMessages());
             this.analyzeTopicsBtn.addEventListener("click", () => this.analyzeTopics());
             this.getSummaryBtn.addEventListener("click", () => this.getSummary());
         },
@@ -163,9 +161,13 @@ document.addEventListener("DOMContentLoaded", () => {
         async fetchMessages() {
             if (!this.validateConfig()) return;
             
+            // Disable button and show loading
+            this.fetchMessagesBtn.disabled = true;
+            this.fetchMessagesBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Fetching...';
             this.showMessageStatus("Fetching messages from Discord...", "info");
             
             try {
+                // Step 1: Start the fetch process
                 const response = await fetch("/fetch_messages", {
                     method: "POST",
                     headers: {
@@ -181,15 +183,85 @@ document.addEventListener("DOMContentLoaded", () => {
                 const data = await response.json();
                 
                 if (data.status === "scraping_initiated") {
-                    this.showMessageStatus(data.message, "success");
+                    // Show initial success message
+                    this.showMessageStatus(data.message, "info");
+                    
+                    // Poll for completion
+                    this.pollForMessages();
                 } else {
                     this.showMessageStatus("Failed to fetch messages: " + data.message, "error");
+                    this.resetFetchButton();
                 }
             } catch (error) {
                 this.showMessageStatus("Connection error: " + error.message, "error");
+                this.resetFetchButton();
             }
         },
         
+        resetFetchButton() {
+            // Reset button state
+            this.fetchMessagesBtn.disabled = false;
+            this.fetchMessagesBtn.innerHTML = '<i class="fas fa-cloud-download-alt mr-2"></i> Fetch Recent Messages';
+        },
+        
+        async pollForMessages() {
+            // Poll every 2 seconds to check if messages are ready
+            const pollInterval = setInterval(async () => {
+                try {
+                    const result = await this.checkForMessages();
+                    if (result) {
+                        // Messages loaded successfully, stop polling
+                        clearInterval(pollInterval);
+                        this.resetFetchButton();
+                    }
+                } catch (error) {
+                    console.error("Error polling for messages:", error);
+                    // On error, stop polling and reset button
+                    clearInterval(pollInterval);
+                    this.resetFetchButton();
+                    this.showMessageStatus("Error checking message status: " + error.message, "error");
+                }
+            }, 2000);
+            
+            // Set a timeout to stop polling after 30 seconds regardless
+            setTimeout(() => {
+                clearInterval(pollInterval);
+                this.resetFetchButton();
+                this.showMessageStatus("Message fetching may still be in progress. Try viewing messages in a moment.", "info");
+            }, 30000);
+        },
+        
+        async checkForMessages() {
+            try {
+                const response = await fetch("/get_displayed_messages", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        server_id: this.config.serverId,
+                        channel_id: this.config.channelId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === "success" && data.messages && data.messages.length > 0) {
+                    this.messages = data.messages;
+                    this.renderMessages();
+                    this.showMessageStatus(`Loaded ${data.messages.length} messages`, "success");
+                    return true; // Messages loaded successfully
+                } else {
+                    // No messages yet or error
+                    return false;
+                }
+            } catch (error) {
+                console.error("Error checking for messages:", error);
+                return false;
+            }
+        },
+        
+        // Legacy display function, now automatically handled
         async displayMessages() {
             if (!this.validateConfig()) return;
             

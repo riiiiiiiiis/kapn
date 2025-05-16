@@ -78,6 +78,18 @@ class Database:
         
         rows = self.cursor.fetchall()
         return [{k: row[k] for k in row.keys()} for row in rows]
+        
+    def get_messages(self, server_id: str, channel_id: str, limit: int = 1000) -> List[Dict[str, Any]]:
+        """Get messages for a specific server and channel"""
+        self.cursor.execute("""
+        SELECT * FROM messages 
+        WHERE server_id = ? AND channel_id = ?
+        ORDER BY timestamp DESC
+        LIMIT ?
+        """, (server_id, channel_id, limit))
+        
+        rows = self.cursor.fetchall()
+        return [{k: row[k] for k in row.keys()} for row in rows]
 
     def close(self) -> None:
         self.conn.close()
